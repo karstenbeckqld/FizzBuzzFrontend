@@ -14,8 +14,8 @@ import {
     VStack
 } from "@chakra-ui/react";
 import { Rule, ValueTransferModel } from "@/types.ts";
-import RulesDisplay from "../components/RulesDisplay.tsx";
-import { withMessageFailureToast } from "../utils/toastTypes.ts";
+import RulesDisplay from "@/components/RulesDisplay.tsx";
+import { withMessageFailureToast } from "@/utils/toastTypes.ts";
 
 const Home = () => {
 
@@ -128,8 +128,7 @@ const Home = () => {
                 <Text>The Rules!</Text> {rules !== null ?
                 rules.map((rule) => (<RulesDisplay item = {rule} key = {rule.id} />)) :
                 <p>Loading...</p>
-            } <Text textAlign = 'center'>If all rules match, combine the words with spaces.</Text>
-                <Text textAlign = 'center'>If no rule matches, just type the number itself in the field.</Text>
+            } <Text textAlign = 'center' fontStyle='italic'>If all rules match, combine the words with spaces. If no rule matches, just type the number itself in the field.</Text>
             </div>
 
             <div className = 'game-container'>

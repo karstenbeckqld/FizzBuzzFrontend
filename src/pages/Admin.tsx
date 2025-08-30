@@ -17,8 +17,8 @@ import {
     useColorMode,
     useToast
 } from '@chakra-ui/react';
-import { Rule } from "../types.ts";
-import { withMessageFailureToast, withMessageSuccessToast } from "../utils/toastTypes.ts";
+import { Rule } from "@/types.ts";
+import { withMessageFailureToast, withMessageSuccessToast } from "@/utils/toastTypes.ts";
 
 const Admin = () => {
 
