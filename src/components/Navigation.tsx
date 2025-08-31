@@ -4,6 +4,8 @@ import ColorModeSwitch from "../components/ColorModeSwitch.tsx";
 import logoLight from '../assets/kb-logo-light.svg';
 import logoDark from '../assets/kb-logo-dark.svg';
 
+// The navigation bar displayed across the application.
+
 const Navigation = () => {
 
     const { colorMode } = useColorMode();

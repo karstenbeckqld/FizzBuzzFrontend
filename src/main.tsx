@@ -4,6 +4,8 @@ import App from './App.tsx'
 import { ChakraProvider } from "@chakra-ui/react";
 import theme from './theme.ts';
 
+// We use Chakra UI in this app, hence we added the ChakraProvider to the main file.
+
 createRoot(document.getElementById('root')!)
     .render(
         <StrictMode>

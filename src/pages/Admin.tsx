@@ -20,6 +20,9 @@ import {
 import { Rule } from "@/types.ts";
 import { withMessageFailureToast, withMessageSuccessToast } from "@/utils/toastTypes.ts";
 
+// The Admin page allows the user to add, delete or update rules for the game. Here, rules can also get activated
+// or deactivated. All functionality is contained within one view, no need to load an 'Edit' page or so.
+
 const Admin = () => {
 
     const {colorMode} = useColorMode();
@@ -33,11 +36,13 @@ const Admin = () => {
     const inputFieldBackground = colorMode === 'dark' ? 'brand.600' : 'brand.300';
     const inputFieldText = colorMode === 'dark' ? 'brand.100' : 'brand.900';
 
+    // The useEffect loads the currently stored rules from the API using the getRules() function.
     useEffect(() => {
         getRules()
             .then(res => console.log("Fetching rules: ", res));
     }, []);
 
+    // The CRUD functions are here.
     const getRules = async () => {
         const response = await axios.get<Rule[]>('http://localhost:5165/api/rules');
         setRules(response.data);
@@ -77,6 +82,14 @@ const Admin = () => {
 
     };
 
+    /*
+    * So that the page doesn't have to call the API with every keystroke in the UI, we build a local rule first and
+    * then send this one in one go. This improves responsiveness.
+    * The updateLocalRule function leads to performance Benefits in the following way:
+    * - It reduces API calls: Without updateLocalRule, every keystroke in the input fields would trigger the updateRule
+    *   function, which sends an HTTP request to the API. This would create excessive network traffic.
+    * Immediate responsiveness: The UI updates instantly when users type, making the interface feel more responsive.
+    */
     const updateLocalRule = (id: number, updates: Partial<Rule>) => {
         setRules(rules.map(rule =>
             rule.id === id

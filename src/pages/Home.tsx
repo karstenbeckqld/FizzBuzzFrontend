@@ -13,9 +13,10 @@ import {
     useToast,
     VStack
 } from "@chakra-ui/react";
-import { Rule, ValueTransferModel } from "@/types.ts";
+import { GameSessionResult, Rule, ValueTransferModel } from "@/types.ts";
 import RulesDisplay from "@/components/RulesDisplay.tsx";
 import { withMessageFailureToast } from "@/utils/toastTypes.ts";
+import GameResultOutput from "@/components/GameResultOutput.tsx";
 
 const Home = () => {
 
@@ -29,33 +30,32 @@ const Home = () => {
 
     const answerRef = useRef<HTMLInputElement>(null);
 
-    // Here, we use the useState hook to set the number received from the server and the active rules.
+    // Here, we use the useState hook to set the required state variables for this component.
     const [value, setValue] = useState<number | null>(0);
     const [rules, setRules] = useState<Rule[] | null>([]);
     const [result, setResult] = useState<boolean | null>(null);
-
-    const [isPlaying, setIsPlaying] = useState(false);
-
-    // const [error, setError] = useState<string | null>(null);
-    // const [answer, setAnswer] = useState<string>("");
+    const [isPlaying, setIsPlaying] = useState<boolean>(false);
+    const [hasEnded, setHasEnded] = useState<boolean>(false);
+    const [results, setResults] = useState<GameSessionResult | null>(null);
 
     // The getRules() function contacts the /api/game/active endpoint to receive the currently active rules.
-    const getRules = async () => {
-
-        try {
-            const result = await axios.get<Rule[] | null>('http://localhost:5165/api/rules/active');
-            setRules(result.data);
-            console.log(result.data);
-        } catch (error) {
-            console.error("Error fetching rules: ", error);
-            toast(withMessageFailureToast('Failed to fetch rules.'));
-        }
-    }
-
     useEffect(() => {
-        getRules();
-    }, [])
+        const getRules = async () => {
+            try {
+                const result = await axios.get<Rule[] | null>('http://localhost:5165/api/rules/active');
+                setRules(result.data);
+                console.log(result.data);
+            } catch (error) {
+                console.error("Error fetching rules: ", error);
+                toast(withMessageFailureToast('Failed to fetch rules.'));
+            }
+        }
 
+        getRules()
+            .then(r => console.log(r));
+    }, [toast])
+
+    // The handleSubmit function submits the user's response to the API to check.
     const handleSubmit = async (e: SyntheticEvent) => {
         e.preventDefault();
 
@@ -66,24 +66,42 @@ const Home = () => {
 
         console.log('Transfer Model:', transferModel);
 
-        const res = await axios.post('http://localhost:5165/api/game/verify', transferModel, {
+        await axios.post('http://localhost:5165/api/game/verify', transferModel, {
             headers: {
                 'Content-Type': 'application/json',
             }
         })
-
-        console.log(res.data);
-        setResult(res.data);
+            .then((res) => {
+                console.log(res.data);
+                setResult(res.data);
+            })
+            .catch((err) => {
+                console.log(err.response?.data.message);
+                const message = err.response.data.message;
+                toast(withMessageFailureToast(message));
+            })
 
         console.log(result);
     }
 
+    // Start the game, receive a new number from the API.
     const startGame = async () => {
         setIsPlaying(true);
         await getNewNumber();
     };
 
-    const stopGame = () => {
+    // Stop the game, receive the game statistics from the API.
+    const stopGame = async () => {
+        await axios.get<GameSessionResult>('http://localhost:5165/api/game/end-game')
+            .then((res) => {
+                console.log(res.data);
+                setResults(res.data);
+                setHasEnded(true);
+            })
+            .catch((err) => {
+                console.error("Error fetching results listing: ", err);
+                toast(withMessageFailureToast('Failed to fetch results listing.'));
+            });
         setIsPlaying(false);
         setValue(null);
     };
@@ -96,25 +114,29 @@ const Home = () => {
             console.log(result.data);
         } catch (error) {
             console.error("Error fetching value: ", error);
-            toast(withMessageFailureToast('Failed to fetch data.'));
+            toast(withMessageFailureToast('Failed to fetch a number.'));
         }
     };
 
-    // To conditionally display the game result, we use the getResultMessage function, which displays a message
-    // depending on the correctness of the guess.
+    // To conditionally display the game outcome (correct or wrong), we use the getResultMessage function, which
+    // displays a message depending on the correctness of the guess.
     const getResultMessage = () => {
         if (!isPlaying || result === null) return null;
 
         return (
             <Box
-                maxW = 'lg'
-                className = {colorMode === 'dark' ? 'text-slate-50' : 'text-black'}
+                bg = {result ? '#4cff02' : '#d36e6e'}
+                color = {result ? 'black' : 'white'}
+                maxW = '100%'
+                width = '80%'
+                borderRadius = {10}
                 marginBottom = {8}
                 marginTop = {8}
+                padding = {2}
             >
             {result
-                ? <p className = 'result-message correct'>Correct</p>
-                : <p className = 'result-message wrong'>Wrong guess, try again!</p>
+                ? <p className = 'result-message'>Correct</p>
+                : <p className = 'result-message'>Wrong guess, try again!</p>
             }
         </Box>
         );
@@ -123,14 +145,6 @@ const Home = () => {
     return (
         <div>
             <Heading className = 'headingStyle'>Welcome to the FizzBuzz Game</Heading>
-
-            <div className = 'rules-container'>
-                <Text>The Rules!</Text> {rules !== null ?
-                rules.map((rule) => (<RulesDisplay item = {rule} key = {rule.id} />)) :
-                <p>Loading...</p>
-            } <Text textAlign = 'center' fontStyle='italic'>If all rules match, combine the words with spaces. If no rule matches, just type the number itself in the field.</Text>
-            </div>
-
             <div className = 'game-container'>
                 {!isPlaying ? (
                     <Button
@@ -141,6 +155,23 @@ const Home = () => {
                     </Button>
                 ) : (
                     <>
+                        <div className = 'rules-container'>
+                            <Text
+                                fontSize = '2xl'
+                                color = 'cyan'
+                                marginBottom = {8}
+                            >
+                                The Rules!
+                            </Text> {rules !== null ?
+                            rules.map((rule) => (<RulesDisplay item = {rule} key = {rule.id} />)) :
+                            <p>Loading...</p>
+                        } <Text
+                            textAlign = 'center'
+                            fontStyle = 'italic'
+                        >
+                            If all rules match, combine the words without spaces, just keep it in the order of the Rules. If no rule matches, just type the number itself in the field.
+                        </Text>
+                        </div>
                         <HStack spacing = {2}>
                             <Button
                                 colorScheme = 'red'
@@ -161,7 +192,10 @@ const Home = () => {
                         </Heading>
 
                         {value && (
-                            <form onSubmit = {handleSubmit}>
+                            <form
+                                className = 'form'
+                                onSubmit = {handleSubmit}
+                            >
                                 <VStack>
                                 <Box
                                     width = '100%'
@@ -179,11 +213,11 @@ const Home = () => {
                                     height = '100px'
                                     marginBottom = {6}
                                 >
-                                    <FormControl>
+                                    <FormControl width = 'sm'>
                                         <FormLabel
                                             htmlFor = "answer"
                                         >
-                                            Enter: {rules?.map(rule => rule.text + ' or ')} the number displayed, when no answer fits.
+                                           Enter the rules that apply.
                                         </FormLabel>
                                         <Input
                                             placeholder = 'Enter your Answer here.'
@@ -209,6 +243,11 @@ const Home = () => {
                     </>
                 )} {getResultMessage()}
             </div>
+
+            {hasEnded ? (
+                <GameResultOutput gameData = {results} />
+            ) : null}
+
         </div>
     );
 };

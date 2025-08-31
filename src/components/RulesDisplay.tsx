@@ -1,6 +1,7 @@
 import { Rule } from "../types.ts";
 import { Card, CardBody, useColorMode } from "@chakra-ui/react";
 
+// The rules display component displays the currently active rules to the user.
 
 type RulesDisplayProps = {
     key: number;
@@ -10,8 +11,6 @@ type RulesDisplayProps = {
 const RulesDisplay = ({item}: RulesDisplayProps) => {
 
     const {colorMode} = useColorMode();
-
-
 
     return (
         <Card

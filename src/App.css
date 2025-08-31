@@ -20,10 +20,15 @@ body {
 
 .rules-container {
     padding: 10px;
+    margin-bottom: 20px;
 }
 
 .table-header {
     margin: 40px 0 10px 0;
+}
+
+.form {
+    padding: 0 10px;
 }
 
 .game-container{
